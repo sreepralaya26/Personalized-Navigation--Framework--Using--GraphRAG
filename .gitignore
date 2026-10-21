@@ -7,3 +7,17 @@ backend/vrnv/
 __pycache__/
 *.pyc
 .env
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+backend/vrnv/
+
+# Generated databases and cache
+backend/chroma_db/
+backend/cache/
+backend/__pycache__/
+__pycache__/
+*.pyc
+.env
