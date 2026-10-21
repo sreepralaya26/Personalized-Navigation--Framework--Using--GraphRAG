@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>GraphRAG — Intelligent Multilingual Route Assistant</title>
+
+    <!-- =====================================================
+         LEAFLET
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+
+    <!-- =====================================================
+         FONT
+    ====================================================== -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
+
+        body {
+
+            font-family: "Inter", sans-serif;
+
+            height: 100vh;
+
+            overflow: hidden;
+
+            background: #dff4f7;
+
+            color: #12343b;
+        }
+
+
+        /* =====================================================
+           CHENNAI BEACH BACKGROUND
+        ====================================================== */
+
+        .background {
+
+            position: fixed;
+
+            inset: 0;
+
+            z-index: -10;
+
+            background-image:
+
+                linear-gradient(
+                    90deg,
+                    rgba(2, 35, 45, 0.68),
+                    rgba(2, 35, 45, 0.22)
+                ),
+
+                url(
+                    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=90"
+                );
+
+            background-size: cover;
+
+            background-position: center;
+        }
+
+
+        .background::after {
+
+            content: "";
+
+            position: absolute;
+
+            inset: 0;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(0, 100, 120, 0.15),
+                    rgba(0, 0, 0, 0.30)
+                );
+        }
+
+
+        /* =====================================================
+           APPLICATION LAYOUT
+        ====================================================== */
+
+        .app {
+
+            width: 100%;
+
+            height: 100vh;
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(380px, 43%)
+                minmax(500px, 57%);
+
+            padding: 22px;
+
+            gap: 18px;
+        }
+
+
+        /* =====================================================
+           GLASS PANELS
+        ====================================================== */
+
+        .panel {
+
+            background:
+                rgba(255, 255, 255, 0.84);
+
+            backdrop-filter:
+                blur(18px);
+
+            -webkit-backdrop-filter:
+                blur(18px);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.78);
+
+            box-shadow:
+                0 20px 60px
+                rgba(0, 30, 40, 0.25);
+
+            border-radius: 28px;
+
+            overflow: hidden;
+        }
+
+
+        /* =====================================================
+           CHAT PANEL
+        ====================================================== */
+
+        .chat-panel {
+
+            display: flex;
+
+            flex-direction: column;
+
+            min-width: 0;
+        }
+
+
+        /* =====================================================
+           HEADER
+        ====================================================== */
+
+        .chat-header {
+
+            padding: 27px 28px 20px;
+
+            border-bottom:
+                1px solid
+                rgba(20, 80, 90, 0.10);
+        }
+
+
+        .brand {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 13px;
+        }
+
+
+        .brand-icon {
+
+            width: 50px;
+
+            height: 50px;
+
+            flex-shrink: 0;
+
+            border-radius: 16px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #087f91,
+                    #42b6c3
+                );
+
+            color: white;
+
+            font-size: 23px;
+
+            box-shadow:
+                0 8px 20px
+                rgba(8, 130, 150, 0.28);
+        }
+
+
+        .brand h1 {
+
+            font-size: 23px;
+
+            font-weight: 800;
+
+            letter-spacing: -0.6px;
+
+            color: #123f47;
+        }
+
+
+        .brand p {
+
+            margin-top: 4px;
+
+            font-size: 10px;
+
+            line-height: 1.5;
+
+            color: #66858b;
+
+            font-weight: 500;
+        }
+
+
+        /* =====================================================
+           SYSTEM STATUS
+        ====================================================== */
+
+        .status {
+
+            margin-top: 17px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding: 7px 11px;
+
+            border-radius: 50px;
+
+            background:
+                rgba(49, 179, 145, 0.11);
+
+            color: #17765f;
+
+            font-size: 10px;
+
+            font-weight: 600;
+        }
+
+
+        .status-dot {
+
+            width: 7px;
+
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #2ab98e;
+
+            box-shadow:
+                0 0 0 4px
+                rgba(42, 185, 142, 0.12);
+        }
+
+
+        /* =====================================================
+           MESSAGES
+        ====================================================== */
+
+        .messages {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            padding: 24px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 15px;
+
+            scroll-behavior: smooth;
+        }
+
+
+        .messages::-webkit-scrollbar {
+
+            width: 5px;
+        }
+
+
+        .messages::-webkit-scrollbar-thumb {
+
+            background:
+                rgba(30, 100, 110, 0.18);
+
+            border-radius: 20px;
+        }
+
+
+        .message {
+
+            max-width: 91%;
+
+            padding: 13px 16px;
+
+            border-radius: 18px;
+
+            font-size: 13px;
+
+            line-height: 1.65;
+
+            animation:
+                messageIn 0.25s ease;
+
+            white-space: normal;
+
+            word-wrap: break-word;
+        }
+
+
+        @keyframes messageIn {
+
+            from {
+
+                opacity: 0;
+
+                transform:
+                    translateY(7px);
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0);
+            }
+        }
+
+
+        .bot {
+
+            align-self: flex-start;
+
+            background:
+                rgba(237, 249, 250, 0.97);
+
+            border:
+                1px solid
+                rgba(40, 130, 145, 0.10);
+
+            border-bottom-left-radius: 5px;
+
+            color: #24474d;
+        }
+
+
+        .user {
+
+            align-self: flex-end;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #087f91,
+                    #119fb0
+                );
+
+            color: white;
+
+            border-bottom-right-radius: 5px;
+
+            box-shadow:
+                0 7px 18px
+                rgba(7, 122, 140, 0.20);
+        }
+
+
+        .message-time {
+
+            font-size: 9px;
+
+            opacity: 0.55;
+
+            margin-top: 7px;
+        }
+
+
+        /* =====================================================
+           TYPING
+        ====================================================== */
+
+        .typing {
+
+            display: none;
+
+            align-self: flex-start;
+
+            padding: 13px 17px;
+
+            background: #eef9fa;
+
+            border-radius: 18px;
+
+            border-bottom-left-radius: 5px;
+        }
+
+
+        .typing span {
+
+            display: inline-block;
+
+            width: 6px;
+
+            height: 6px;
+
+            border-radius: 50%;
+
+            background: #4d9aa4;
+
+            margin: 0 2px;
+
+            animation:
+                typing 1.2s infinite;
+        }
+
+
+        .typing span:nth-child(2) {
+            animation-delay: .15s;
+        }
+
+
+        .typing span:nth-child(3) {
+            animation-delay: .30s;
+        }
+
+
+        @keyframes typing {
+
+            0%, 60%, 100% {
+
+                transform: translateY(0);
+
+                opacity: .45;
+            }
+
+            30% {
+
+                transform: translateY(-5px);
+
+                opacity: 1;
+            }
+        }
+
+
+        /* =====================================================
+           INPUT
+        ====================================================== */
+
+        .input-area {
+
+            padding: 17px;
+
+            border-top:
+                1px solid
+                rgba(20, 80, 90, 0.10);
+
+            background:
+                rgba(255, 255, 255, 0.55);
+        }
+
+
+        .input-box {
+
+            display: flex;
+
+            align-items: flex-end;
+
+            gap: 9px;
+
+            padding: 8px 8px 8px 16px;
+
+            background: white;
+
+            border:
+                1px solid
+                rgba(40, 110, 120, 0.14);
+
+            border-radius: 19px;
+
+            box-shadow:
+                0 8px 24px
+                rgba(20, 80, 90, 0.08);
+        }
+
+
+        textarea {
+
+            flex: 1;
+
+            border: none;
+
+            outline: none;
+
+            resize: none;
+
+            min-height: 39px;
+
+            max-height: 110px;
+
+            padding: 9px 0;
+
+            font-family: inherit;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+            color: #183e45;
+
+            background: transparent;
+        }
+
+
+        textarea::placeholder {
+
+            color: #8aa6ab;
+        }
+
+
+        .send-btn {
+
+            width: 42px;
+
+            height: 42px;
+
+            border: none;
+
+            border-radius: 14px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #087f91,
+                    #10a4b5
+                );
+
+            color: white;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 17px;
+
+            transition:
+                transform .18s ease,
+                box-shadow .18s ease;
+        }
+
+
+        .send-btn:hover {
+
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 7px 18px
+                rgba(5, 126, 145, .30);
+        }
+
+
+        .send-btn:disabled {
+
+            opacity: .55;
+
+            cursor: not-allowed;
+
+            transform: none;
+        }
+
+
+        .hint {
+
+            text-align: center;
+
+            margin-top: 8px;
+
+            color: #7e999e;
+
+            font-size: 9px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =====================================================
+           MAP
+        ====================================================== */
+
+        .map-panel {
+
+            position: relative;
+
+            min-width: 0;
+        }
+
+
+        #map {
+
+            width: 100%;
+
+            height: 100%;
+        }
+
+
+        /* =====================================================
+           MAP CARD
+        ====================================================== */
+
+        .map-card {
+
+            position: absolute;
+
+            z-index: 1000;
+
+            top: 18px;
+
+            left: 18px;
+
+            padding: 14px 17px;
+
+            border-radius: 17px;
+
+            background:
+                rgba(255,255,255,.92);
+
+            backdrop-filter:
+                blur(15px);
+
+            box-shadow:
+                0 10px 30px
+                rgba(0, 40, 50, .16);
+
+            min-width: 235px;
+        }
+
+
+        .map-card-title {
+
+            font-weight: 800;
+
+            font-size: 13px;
+
+            color: #173f46;
+        }
+
+
+        .map-card-subtitle {
+
+            margin-top: 4px;
+
+            font-size: 10px;
+
+            color: #759096;
+
+            line-height: 1.5;
+        }
+
+
+        .map-status {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            margin-top: 9px;
+
+            font-size: 10px;
+
+            color: #27836e;
+
+            font-weight: 600;
+        }
+
+
+        .map-status-dot {
+
+            width: 7px;
+
+            height: 7px;
+
+            flex-shrink: 0;
+
+            border-radius: 50%;
+
+            background: #35b68e;
+        }
+
+
+        /* =====================================================
+           ROUTE INFORMATION
+        ====================================================== */
+
+        .route-info {
+
+            position: absolute;
+
+            z-index: 1000;
+
+            left: 18px;
+
+            right: 18px;
+
+            bottom: 18px;
+
+            display: none;
+
+            padding: 15px 17px;
+
+            border-radius: 19px;
+
+            background:
+                rgba(255,255,255,.94);
+
+            backdrop-filter:
+                blur(16px);
+
+            box-shadow:
+                0 12px 35px
+                rgba(0, 35, 45, .18);
+        }
+
+
+        .route-main {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+        }
+
+
+        .route-distance {
+
+            font-size: 21px;
+
+            font-weight: 800;
+
+            color: #0c7381;
+        }
+
+
+        .route-details {
+
+            margin-top: 5px;
+
+            font-size: 10px;
+
+            color: #718c92;
+
+            line-height: 1.5;
+        }
+
+
+        .route-badge {
+
+            padding: 7px 10px;
+
+            border-radius: 10px;
+
+            background:
+                #e8f6f7;
+
+            color: #167382;
+
+            font-size: 10px;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+
+        /* =====================================================
+           MAP RESET
+        ====================================================== */
+
+        .map-control {
+
+            position: absolute;
+
+            right: 18px;
+
+            bottom: 18px;
+
+            z-index: 1001;
+
+            width: 42px;
+
+            height: 42px;
+
+            border-radius: 13px;
+
+            border: none;
+
+            background:
+                rgba(255,255,255,.92);
+
+            box-shadow:
+                0 8px 25px
+                rgba(0,30,40,.16);
+
+            cursor: pointer;
+
+            font-size: 18px;
+
+            color: #277582;
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ====================================================== */
+
+        @media (max-width: 900px) {
+
+            body {
+                overflow: auto;
+            }
+
+
+            .app {
+
+                height: auto;
+
+                min-height: 100vh;
+
+                grid-template-columns: 1fr;
+
+                grid-template-rows:
+                    62vh
+                    38vh;
+
+                padding: 10px;
+
+                gap: 10px;
+            }
+
+
+            .panel {
+                border-radius: 21px;
+            }
+
+
+            .map-panel {
+                min-height: 350px;
+            }
+        }
+
+
+        @media (max-width: 550px) {
+
+            .app {
+
+                grid-template-rows:
+                    65vh
+                    35vh;
+            }
+
+
+            .chat-header {
+                padding: 20px;
+            }
+
+
+            .messages {
+                padding: 17px;
+            }
+
+
+            .brand h1 {
+                font-size: 20px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         BACKGROUND
+    ====================================================== -->
+
+    <div class="background"></div>
+
+
+    <!-- =====================================================
+         MAIN APPLICATION
+    ====================================================== -->
+
+    <main class="app">
+
+
+        <!-- =================================================
+             LEFT : GRAPHRAG CHATBOT
+        ================================================== -->
+
+        <section class="panel chat-panel">
+
+
+            <!-- HEADER -->
+
+            <header class="chat-header">
+
+                <div class="brand">
+
+                    <div class="brand-icon">
+                        ◈
+                    </div>
+
+                    <div>
+
+                        <h1>
+                            GraphRAG Chatbot
+                        </h1>
+
+                        <p>
+                            Personalized multilingual route intelligence
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="status">
+
+                    <span class="status-dot"></span>
+
+                    GraphRAG navigation system online
+
+                </div>
+
+            </header>
+
+
+            <!-- =================================================
+                 CHAT MESSAGES
+            ================================================== -->
+
+            <div
+                class="messages"
+                id="messages"
+            >
+
+                <div class="message bot">
+
+                    <div>
+                        👋 Welcome to GraphRAG.
+                    </div>
+
+                    <br>
+
+                    <div>
+                        Tell me where you want to go or ask me
+                        anything about your journey.
+                    </div>
+
+                    <br>
+
+                    <div>
+                        I can understand your request naturally
+                        and use the available road graph,
+                        travel history, preferences, vehicle,
+                        mood, weather and places along the way
+                        to generate a personalized route.
+                    </div>
+
+                    <br>
+
+                    <div>
+                        Responses can be generated across
+                        English, Tamil, Telugu, Hindi, Kannada,
+                        Malayalam and Urdu.
+                    </div>
+
+                    <div class="message-time">
+                        GraphRAG Assistant
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="typing"
+                    id="typing"
+                >
+
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 INPUT
+            ================================================== -->
+
+            <div class="input-area">
+
+                <div class="input-box">
+
+                    <textarea
+                        id="messageInput"
+                        rows="1"
+                        placeholder="Ask about your journey… e.g. Find the best route from Velachery to Guindy"
+                    ></textarea>
+
+
+                    <button
+                        class="send-btn"
+                        id="sendButton"
+                        title="Send message"
+                    >
+                        ➤
+                    </button>
+
+                </div>
+
+
+                <div class="hint">
+
+                    Ask naturally about routes, weather, places,
+                    travel preferences, mood or your journey history.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             RIGHT : LIVE ROUTE MAP
+        ================================================== -->
+
+        <section class="panel map-panel">
+
+
+            <div id="map"></div>
+
+
+            <!-- MAP HEADER -->
+
+            <div class="map-card">
+
+                <div class="map-card-title">
+
+                    Personalized Live Route
+
+                </div>
+
+
+                <div class="map-card-subtitle">
+
+                    Graph-based navigation across South Chennai
+
+                </div>
+
+
+                <div class="map-status">
+
+                    <span class="map-status-dot"></span>
+
+                    Waiting for route request
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ROUTE INFORMATION
+            ================================================== -->
+
+            <div
+                class="route-info"
+                id="routeInfo"
+            >
+
+                <div class="route-main">
+
+                    <div>
+
+                        <div
+                            class="route-distance"
+                            id="routeDistance"
+                        >
+                            --
+                        </div>
+
+
+                        <div
+                            class="route-details"
+                            id="routeDetails"
+                        >
+                            Personalized route information
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="route-badge"
+                        id="routeBadge"
+                    >
+                        ROUTE
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- RESET MAP -->
+
+            <button
+                class="map-control"
+                id="resetMap"
+                title="Reset map"
+            >
+                ⌖
+            </button>
+
+        </section>
+
+    </main>
+
+
+
+    <script>
+
+        /* =====================================================
+           CONFIGURATION
+        ====================================================== */
+
+        /*
+         * Empty string means:
+         *
+         * Browser
+         *     ↓
+         * same FastAPI server
+         *     ↓
+         * /chat
+         *
+         * Therefore run this frontend through FastAPI.
+         */
+
+        const API_BASE = "";
+
+
+        const SESSION_KEY =
+            "graphrag_session_id";
+
+
+        /* =====================================================
+           SESSION
+        ====================================================== */
+
+        let sessionId =
+            localStorage.getItem(
+                SESSION_KEY
+            );
+
+
+        if (!sessionId) {
+
+            sessionId =
+                "session_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                    .toString(36)
+                    .substring(2, 10);
+
+            localStorage.setItem(
+                SESSION_KEY,
+                sessionId
+            );
+        }
+
+
+        /* =====================================================
+           MAP INITIALIZATION
+        ====================================================== */
+
+        const southChennai = [
+            12.9200,
+            80.2200
+        ];
+
+
+        const map =
+            L.map(
+                "map",
+                {
+                    zoomControl: true
+                }
+            ).setView(
+                southChennai,
+                12
+            );
+
+
+        L.tileLayer(
+
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
+            {
+
+                maxZoom: 19,
+
+                attribution:
+                    "&copy; OpenStreetMap contributors"
+
+            }
+
+        ).addTo(map);
+
+
+        let routeLayer = null;
+
+
+        let markerLayer =
+            L.layerGroup().addTo(map);
+
+
+        /* =====================================================
+           RESET MAP
+        ====================================================== */
+
+        document
+            .getElementById("resetMap")
+            .addEventListener(
+                "click",
+                function () {
+
+                    map.setView(
+                        southChennai,
+                        12
+                    );
+
+                }
+            );
+
+
+        /* =====================================================
+           ELEMENTS
+        ====================================================== */
+
+        const messages =
+            document.getElementById(
+                "messages"
+            );
+
+
+        const input =
+            document.getElementById(
+                "messageInput"
+            );
+
+
+        const sendButton =
+            document.getElementById(
+                "sendButton"
+            );
+
+
+        const typing =
+            document.getElementById(
+                "typing"
+            );
+
+
+        /* =====================================================
+           TIME
+        ====================================================== */
+
+        function getTime() {
+
+            return new Date()
+                .toLocaleTimeString(
+                    [],
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+        }
+
+
+        /* =====================================================
+           HTML ESCAPE
+        ====================================================== */
+
+        function escapeHtml(text) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.textContent =
+                text ?? "";
+
+            return div.innerHTML;
+        }
+
+
+        /* =====================================================
+           ADD MESSAGE
+        ====================================================== */
+
+        function addMessage(
+            text,
+            type
+        ) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "message " +
+                type;
+
+
+            const content =
+                document.createElement(
+                    "div"
+                );
+
+
+            content.innerHTML =
+                escapeHtml(
+                    text
+                ).replace(
+                    /\n/g,
+                    "<br>"
+                );
+
+
+            div.appendChild(
+                content
+            );
+
+
+            const time =
+                document.createElement(
+                    "div"
+                );
+
+
+            time.className =
+                "message-time";
+
+
+            time.textContent =
+                getTime();
+
+
+            div.appendChild(
+                time
+            );
+
+
+            messages.insertBefore(
+                div,
+                typing
+            );
+
+
+            messages.scrollTop =
+                messages.scrollHeight;
+        }
+
+
+        /* =====================================================
+           TYPING
+        ====================================================== */
+
+        function showTyping() {
+
+            typing.style.display =
+                "block";
+
+            messages.scrollTop =
+                messages.scrollHeight;
+        }
+
+
+        function hideTyping() {
+
+            typing.style.display =
+                "none";
+        }
+
+
+        /* =====================================================
+           DISPLAY ROUTE
+        ====================================================== */
+
+        function displayRoute(route) {
+
+            if (
+                !route ||
+                !route.success ||
+                !route.coordinates ||
+                !route.coordinates.length
+            ) {
+
+                return;
+            }
+
+
+            /* Remove previous route */
+
+            if (routeLayer) {
+
+                map.removeLayer(
+                    routeLayer
+                );
+            }
+
+
+            markerLayer.clearLayers();
+
+
+            /* =================================================
+               ROUTE COORDINATES
+            ================================================== */
+
+            const coordinates =
+                route.coordinates.map(
+                    point => [
+                        Number(point[0]),
+                        Number(point[1])
+                    ]
+                );
+
+
+            routeLayer =
+                L.polyline(
+                    coordinates,
+                    {
+
+                        weight: 6,
+
+                        opacity: 0.88,
+
+                        lineCap:
+                            "round",
+
+                        lineJoin:
+                            "round"
+
+                    }
+                ).addTo(map);
+
+
+            /* =================================================
+               ORIGIN MARKER
+            ================================================== */
+
+            if (route.origin) {
+
+                const originLat =
+                    Number(
+                        route.origin.lat
+                    );
+
+
+                const originLon =
+                    Number(
+                        route.origin.lon
+                    );
+
+
+                L.marker(
+                    [
+                        originLat,
+                        originLon
+                    ]
+                )
+                .bindPopup(
+                    "<b>Start</b><br>" +
+                    escapeHtml(
+                        route.origin.display_name ||
+                        "Origin"
+                    )
+                )
+                .addTo(
+                    markerLayer
+                );
+            }
+
+
+            /* =================================================
+               DESTINATION MARKER
+            ================================================== */
+
+            if (route.destination) {
+
+                const destinationLat =
+                    Number(
+                        route.destination.lat
+                    );
+
+
+                const destinationLon =
+                    Number(
+                        route.destination.lon
+                    );
+
+
+                L.marker(
+                    [
+                        destinationLat,
+                        destinationLon
+                    ]
+                )
+                .bindPopup(
+                    "<b>Destination</b><br>" +
+                    escapeHtml(
+                        route.destination.display_name ||
+                        "Destination"
+                    )
+                )
+                .addTo(
+                    markerLayer
+                );
+            }
+
+
+            /* =================================================
+               FIT ROUTE
+            ================================================== */
+
+            const bounds =
+                routeLayer.getBounds();
+
+
+            if (bounds.isValid()) {
+
+                map.fitBounds(
+                    bounds,
+                    {
+                        padding: [
+                            45,
+                            45
+                        ]
+                    }
+                );
+            }
+
+
+            /* =================================================
+               ROUTE INFORMATION
+            ================================================== */
+
+            const routeInfo =
+                document.getElementById(
+                    "routeInfo"
+                );
+
+
+            const routeDistance =
+                document.getElementById(
+                    "routeDistance"
+                );
+
+
+            const routeDetails =
+                document.getElementById(
+                    "routeDetails"
+                );
+
+
+            const routeBadge =
+                document.getElementById(
+                    "routeBadge"
+                );
+
+
+            const distance =
+                Number(
+                    route.distance_km || 0
+                );
+
+
+            routeDistance.textContent =
+                distance.toFixed(2) +
+                " km";
+
+
+            const vehicle =
+                route.vehicle ||
+                "vehicle";
+
+
+            const mode =
+                route.mode ||
+                "personalized";
+
+
+            const source =
+                route.source ||
+                "GraphRAG";
+
+
+            routeDetails.textContent =
+                vehicle +
+                " • " +
+                mode +
+                " • " +
+                source;
+
+
+            routeBadge.textContent =
+                String(mode)
+                    .toUpperCase();
+
+
+            routeInfo.style.display =
+                "block";
+        }
+
+
+        /* =====================================================
+           MAP STATUS
+        ====================================================== */
+
+        function updateMapStatus(text) {
+
+            const status =
+                document.querySelector(
+                    ".map-status"
+                );
+
+
+            status.innerHTML =
+                '<span class="map-status-dot"></span>' +
+                escapeHtml(text);
+        }
+
+
+        /* =====================================================
+           HANDLE BACKEND RESPONSE
+        ====================================================== */
+
+        function handleResponse(data) {
+
+            /*
+             * Your backend may return:
+             *
+             * answer
+             * route
+             *
+             * The frontend uses those fields.
+             */
+
+            if (data.answer) {
+
+                addMessage(
+                    data.answer,
+                    "bot"
+                );
+
+            } else if (data.response) {
+
+                addMessage(
+                    data.response,
+                    "bot"
+                );
+
+            } else if (data.message) {
+
+                addMessage(
+                    data.message,
+                    "bot"
+                );
+
+            } else {
+
+                addMessage(
+                    "The GraphRAG system returned no text response.",
+                    "bot"
+                );
+            }
+
+
+            /* =================================================
+               ROUTE
+            ================================================== */
+
+            if (
+                data.route &&
+                data.route.success
+            ) {
+
+                displayRoute(
+                    data.route
+                );
+
+
+                updateMapStatus(
+                    "Personalized route updated"
+                );
+
+            } else {
+
+                updateMapStatus(
+                    "No route requested"
+                );
+            }
+        }
+
+
+        /* =====================================================
+           SEND MESSAGE
+        ====================================================== */
+
+        async function sendMessage() {
+
+            const message =
+                input.value.trim();
+
+
+            if (!message) {
+
+                return;
+            }
+
+
+            addMessage(
+                message,
+                "user"
+            );
+
+
+            input.value = "";
+
+            input.style.height =
+                "auto";
+
+
+            sendButton.disabled =
+                true;
+
+
+            showTyping();
+
+
+            updateMapStatus(
+                "GraphRAG is processing your request..."
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        API_BASE +
+                        "/chat",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    message:
+                                        message,
+
+                                    session_id:
+                                        sessionId
+
+                                })
+
+                        }
+                    );
+
+
+                /* =================================================
+                   HTTP ERROR
+                ================================================== */
+
+                if (!response.ok) {
+
+                    let errorText =
+                        "Server returned HTTP " +
+                        response.status;
+
+
+                    try {
+
+                        const errorData =
+                            await response.json();
+
+
+                        if (
+                            errorData.detail
+                        ) {
+
+                            errorText =
+                                errorData.detail;
+                        }
+
+                    } catch (_) {
+
+                        /* Ignore JSON parsing error */
+
+                    }
+
+
+                    throw new Error(
+                        errorText
+                    );
+                }
+
+
+                /* =================================================
+                   JSON RESPONSE
+                ================================================== */
+
+                const data =
+                    await response.json();
+
+
+                hideTyping();
+
+
+                console.log(
+                    "GraphRAG response:",
+                    data
+                );
+
+
+                handleResponse(
+                    data
+                );
+
+
+            } catch (error) {
+
+                hideTyping();
+
+
+                console.error(
+                    "GraphRAG frontend error:",
+                    error
+                );
+
+
+                addMessage(
+
+                    "I could not process that request. " +
+                    "Please check the GraphRAG backend response " +
+                    "and try again.",
+
+                    "bot"
+                );
+
+
+                updateMapStatus(
+                    "Waiting for GraphRAG request"
+                );
+            }
+
+
+            sendButton.disabled =
+                false;
+
+
+            input.focus();
+        }
+
+
+        /* =====================================================
+           SEND BUTTON
+        ====================================================== */
+
+        sendButton.addEventListener(
+            "click",
+            sendMessage
+        );
+
+
+        /* =====================================================
+           ENTER TO SEND
+        ====================================================== */
+
+        input.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    sendMessage();
+                }
+
+            }
+        );
+
+
+        /* =====================================================
+           AUTO RESIZE
+        ====================================================== */
+
+        input.addEventListener(
+            "input",
+            function() {
+
+                this.style.height =
+                    "auto";
+
+
+                this.style.height =
+                    Math.min(
+                        this.scrollHeight,
+                        110
+                    ) + "px";
+
+            }
+        );
+
+
+        /* =====================================================
+           INITIAL STATUS
+        ====================================================== */
+
+        updateMapStatus(
+            "Waiting for your journey request"
+        );
+
+
+        /* =====================================================
+           INITIAL FOCUS
+        ====================================================== */
+
+        input.focus();
+
+    </script>
+
+</body>
+
+</html>
